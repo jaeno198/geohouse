@@ -1,0 +1,25 @@
+# ── Ambiente ───────────────────────────────────
+# (.env vai junto no commit, conforme pedido, pra manter a conexao)
+
+# ── Python ─────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── Node / Frontend ────────────────────────────
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ── Editores / SO ──────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Uploads gerados em runtime ─────────────────
+img/
