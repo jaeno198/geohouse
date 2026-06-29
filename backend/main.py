@@ -2,6 +2,8 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+import os
+import json
 import unicodedata
 
 try:
@@ -26,9 +28,26 @@ except Exception as _exc:  # noqa: BLE001
 
 app = FastAPI(title="GeoHouse API")
 
+
+def _origens_permitidas() -> list[str]:
+    """Le ALLOWED_ORIGINS do ambiente (lista JSON ou separada por virgula)
+    e sempre inclui o ambiente local de desenvolvimento."""
+    bruto = os.getenv("ALLOWED_ORIGINS", "")
+    origens: list[str] = []
+    if bruto:
+        try:
+            origens = json.loads(bruto)            # formato lista JSON
+        except Exception:                          # noqa: BLE001
+            origens = [o.strip() for o in bruto.split(",") if o.strip()]
+    origens += ["http://localhost:5173", "http://127.0.0.1:5173"]
+    return list(dict.fromkeys(origens))            # remove duplicados
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_origens_permitidas(),
+    # Libera automaticamente os dominios gratuitos de deploy (Render/Vercel/Netlify).
+    allow_origin_regex=r"https://.*\.(onrender\.com|vercel\.app|netlify\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

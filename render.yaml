@@ -1,0 +1,62 @@
+# Blueprint do Render - sobe BACKEND (FastAPI) + FRONTEND (Vue) juntos,
+# a partir do repositorio https://github.com/jaeno198/geohouse
+#
+# O banco de dados NAO entra aqui: continua no servidor 141.11.72.90.
+#
+# Passo a passo:
+#   1. Acesse https://dashboard.render.com  ->  New  ->  Blueprint
+#   2. Conecte o repositorio jaeno198/geohouse (o Render le este arquivo)
+#   3. Apos o primeiro deploy, preencha as 2 variaveis marcadas com "sync: false":
+#        - geohouse-api  -> ALLOWED_ORIGINS = a URL publica do front
+#        - geohouse-web  -> VITE_API_URL    = a URL publica do backend
+#      Depois clique em "Manual Deploy" nos dois para aplicar.
+
+services:
+  # ── BACKEND: API FastAPI ─────────────────────────────
+  - type: web
+    name: geohouse-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DB_HOST
+        value: "141.11.72.90"
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        value: "geohousegeo_geohouse_segundou"
+      - key: DB_USER
+        value: "geohousegeo_geohouse_segundou"
+      - key: DB_PASSWORD
+        value: "12345678"
+      - key: SECRET_KEY
+        value: "geohouse_chave_secreta_2026"
+      - key: ALGORITHM
+        value: "HS256"
+      - key: ACCESS_TOKEN_EXP
+        value: "30"
+      - key: REFRESH_TOKEN_EXP
+        value: "10080"
+      # Cole aqui a URL publica do front depois do 1o deploy
+      # (ex: https://geohouse-web.onrender.com)
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+  # ── FRONTEND: Vue (site estatico) ────────────────────
+  - type: web
+    name: geohouse-web
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Cole aqui a URL publica do backend depois do 1o deploy
+      # (ex: https://geohouse-api.onrender.com)
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      # SPA: qualquer rota cai no index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
