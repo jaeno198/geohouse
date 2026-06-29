@@ -22,4 +22,6 @@ yarn-error.log*
 Thumbs.db
 
 # ── Uploads gerados em runtime ─────────────────
-img/
+# (apenas as pastas de upload na raiz/backend; NAO as imagens do src/assets)
+/img/
+/backend/img/
