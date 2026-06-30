@@ -1,15 +1,17 @@
 # Como publicar (deploy) o GeoHouse no Render
 
-Sobe o **backend (FastAPI)** e o **frontend (Vue)** juntos, a partir deste
-repositorio. O **banco continua no servidor `141.11.72.90`** (nada muda nele).
+Este repositorio tem **2 pastas** (`backend/` e `frontend/`) que viram **2
+servicos separados** no Render. O **banco continua no servidor `141.11.72.90`**
+(nada muda nele).
 
 ## 1. Criar os servicos
 1. Acesse https://dashboard.render.com e faca login (pode entrar com o GitHub).
 2. Clique em **New > Blueprint**.
 3. Conecte o repositorio **`jaeno198/geohouse`**.
-4. O Render le o arquivo [`render.yaml`](render.yaml) e cria os 2 servicos:
-   - `geohouse-api`  -> o backend
-   - `geohouse-web`  -> o frontend
+4. O Render le o arquivo [`render.yaml`](render.yaml) e cria os 2 servicos
+   (cada um aponta para a sua pasta via `rootDir`):
+   - `geohouse-api`  -> o backend  (pasta `backend/`)
+   - `geohouse-web`  -> o frontend (pasta `frontend/`)
 5. Clique em **Apply** e aguarde o primeiro build.
 
 ## 2. Conectar front e back (passo obrigatorio)

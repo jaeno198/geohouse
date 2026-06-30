@@ -1,18 +1,20 @@
-# Blueprint do Render - sobe BACKEND (FastAPI) + FRONTEND (Vue) juntos,
-# a partir do repositorio https://github.com/jaeno198/geohouse
+# Blueprint do Render - 2 servicos separados a partir DESTE repositorio:
+#   - geohouse-api : backend FastAPI  (pasta backend/)
+#   - geohouse-web : frontend Vue     (pasta frontend/)
 #
-# O banco de dados NAO entra aqui: continua no servidor 141.11.72.90.
+# As duas pastas vivem no mesmo repositorio (commitadas juntas), mas cada
+# servico roda isolado. O banco continua no servidor 141.11.72.90.
 #
 # Passo a passo:
-#   1. Acesse https://dashboard.render.com  ->  New  ->  Blueprint
-#   2. Conecte o repositorio jaeno198/geohouse (o Render le este arquivo)
-#   3. Apos o primeiro deploy, preencha as 2 variaveis marcadas com "sync: false":
-#        - geohouse-api  -> ALLOWED_ORIGINS = a URL publica do front
-#        - geohouse-web  -> VITE_API_URL    = a URL publica do backend
+#   1. https://dashboard.render.com  ->  New  ->  Blueprint
+#   2. Conecte este repositorio (o Render le este arquivo e cria os 2 servicos)
+#   3. Apos o 1o deploy, preencha as variaveis marcadas com "sync: false":
+#        - geohouse-api -> ALLOWED_ORIGINS = URL publica do front
+#        - geohouse-web -> VITE_API_URL    = URL publica do backend
 #      Depois clique em "Manual Deploy" nos dois para aplicar.
 
 services:
-  # ── BACKEND: API FastAPI ─────────────────────────────
+  # ── BACKEND: API FastAPI (pasta backend/) ────────────
   - type: web
     name: geohouse-api
     runtime: python
@@ -39,19 +41,20 @@ services:
         value: "30"
       - key: REFRESH_TOKEN_EXP
         value: "10080"
-      # Cole aqui a URL publica do front depois do 1o deploy
+      # Cole a URL publica do front depois do 1o deploy
       # (ex: https://geohouse-web.onrender.com)
       - key: ALLOWED_ORIGINS
         sync: false
 
-  # ── FRONTEND: Vue (site estatico) ────────────────────
+  # ── FRONTEND: Vue / site estatico (pasta frontend/) ──
   - type: web
     name: geohouse-web
     runtime: static
+    rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
-      # Cole aqui a URL publica do backend depois do 1o deploy
+      # Cole a URL publica do backend depois do 1o deploy
       # (ex: https://geohouse-api.onrender.com)
       - key: VITE_API_URL
         sync: false

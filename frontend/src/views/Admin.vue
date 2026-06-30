@@ -1,21 +1,13 @@
 <template>
   <div class="admin-page">
 
-    <!-- Login gate -->
+    <!-- Acesso restrito: somente usuario com papel 'admin' (coluna usuarios.tipo no banco) -->
     <div v-if="!autenticado" class="admin-login">
       <div class="login-card">
         <h1>Painel Administrativo</h1>
-        <p>Acesso restrito</p>
-        <form @submit.prevent="autenticar">
-          <input
-            v-model="senhaInput"
-            type="password"
-            placeholder="Senha de administrador"
-            autocomplete="current-password"
-          />
-          <p v-if="erroLogin" class="erro-msg">Senha incorreta.</p>
-          <button type="submit">Entrar</button>
-        </form>
+        <p>Acesso restrito a administradores.</p>
+        <p class="erro-msg">Entre com uma conta de administrador para continuar.</p>
+        <button type="button" @click="irParaLogin">Ir para o login</button>
       </div>
     </div>
 
@@ -188,30 +180,34 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useKmlStore, getShapefileFields, parseShapefile, detectEncoding, parseKML } from '@/composables/useKmlStore'
 import { BAIRROS_MARINGA } from '@/data/bairrosMaringa'
 
-const ADMIN_PASSWORD = 'geohouse2025'
-const ADMIN_SESSION_KEY = 'geohouse_admin_ok'
+const router = useRouter()
 
-const autenticado = ref(localStorage.getItem(ADMIN_SESSION_KEY) === '1')
-const senhaInput = ref('')
-const erroLogin = ref(false)
-
-function autenticar() {
-  if (senhaInput.value === ADMIN_PASSWORD) {
-    localStorage.setItem(ADMIN_SESSION_KEY, '1')
-    autenticado.value = true
-    erroLogin.value = false
-  } else {
-    erroLogin.value = true
+// O acesso ao painel vem do papel do usuario logado (coluna usuarios.tipo no
+// banco), gravado em localStorage pelo Login/Cadastro. O guard de rota em
+// main.js ja exige tipo === 'admin'; aqui apenas confirmamos, para o painel
+// nao renderizar caso alguem chegue sem permissao.
+function usuarioLogado() {
+  try {
+    return JSON.parse(localStorage.getItem('geohouse_user') || 'null')
+  } catch {
+    return null
   }
 }
 
+const autenticado = ref(usuarioLogado()?.tipo === 'admin')
+
+function irParaLogin() {
+  router.push('/login')
+}
+
 function sair() {
-  localStorage.removeItem(ADMIN_SESSION_KEY)
+  localStorage.removeItem('geohouse_user')
   autenticado.value = false
-  senhaInput.value = ''
+  router.push('/login')
 }
 
 const { kmlLayers, addLayer, addLayersFromGeojson, removeLayer, clearAll } = useKmlStore()

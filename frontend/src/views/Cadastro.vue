@@ -108,6 +108,8 @@
           </label>
           <p v-if="errors.aceite" class="field-error">{{ errors.aceite }}</p>
 
+          <p v-if="erroGlobal" class="field-error" role="alert">{{ erroGlobal }}</p>
+
           <button type="submit" class="btn-submit" :class="{ loading: carregando }">
             <span v-if="!carregando">
               Criar conta {{ tipoUsuario === 'corretor' ? '— Anunciante pago' : 'grátis' }}
@@ -133,6 +135,16 @@ import { useRoute, useRouter } from 'vue-router'
 const route  = useRoute()
 const router = useRouter()
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
+// Para onde cada papel vai depois de criar a conta (igual ao Login).
+const ROTA_POR_PAPEL = {
+  admin: '/admin',
+  corretor: '/perfil',
+  proprietario: '/perfil',
+  cliente: '/',
+}
+
 const tipoUsuario    = ref(route.query.tipo === 'anunciante' ? 'corretor' : 'proprietario')
 const nome           = ref('')
 const email          = ref('')
@@ -143,6 +155,7 @@ const confirmarSenha = ref('')
 const aceite         = ref(false)
 const showSenha      = ref(false)
 const carregando     = ref(false)
+const erroGlobal      = ref('')
 const errors         = reactive({ email: '', senha: '', confirmar: '', aceite: '' })
 
 const forcaSenha = computed(() => {
@@ -176,15 +189,41 @@ function validateConfirmar() {
 }
 
 async function cadastrar() {
+  erroGlobal.value = ''
   validateEmail(); validateSenha(); validateConfirmar()
   if (!aceite.value) { errors.aceite = 'Aceite os termos para continuar' }
   else errors.aceite = ''
   if (Object.values(errors).some(e => e)) return
 
   carregando.value = true
-  await new Promise(r => setTimeout(r, 1000))
-  carregando.value = false
-  router.push('/')
+  try {
+    const resposta = await fetch(`${API_URL}/api/cadastro`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome: nome.value,
+        email: email.value,
+        senha: senha.value,
+        tipo: tipoUsuario.value,                                  // proprietario | corretor
+        telefone: telefone.value || null,
+        creci: tipoUsuario.value === 'corretor' ? (creci.value || null) : null,
+      }),
+    })
+
+    if (!resposta.ok) {
+      const erro = await resposta.json().catch(() => ({}))
+      throw new Error(erro.detail || 'Não foi possível criar a conta.')
+    }
+
+    // Cria a conta e ja deixa o usuario logado (mesmo payload do /api/login).
+    const usuario = await resposta.json()
+    localStorage.setItem('geohouse_user', JSON.stringify(usuario))
+    router.push(ROTA_POR_PAPEL[usuario.tipo] || '/')
+  } catch (erro) {
+    erroGlobal.value = erro.message || 'Não foi possível criar a conta.'
+  } finally {
+    carregando.value = false
+  }
 }
 </script>
 
