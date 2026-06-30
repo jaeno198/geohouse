@@ -16,7 +16,7 @@ except Exception:  # noqa: BLE001
 # banco nao estiverem disponiveis, a API continua funcionando com os dados
 # locais de demonstracao definidos mais abaixo.
 try:
-    from database import db_status, query, db_config
+    from database import db_status, query, db_config, get_connection
     _DB_OK = True
     _DB_ERR = None
 except Exception as _exc:  # noqa: BLE001
@@ -207,6 +207,72 @@ def carregar_imoveis() -> list:
 class LoginInput(BaseModel):
     email: str
     senha: str
+
+
+class CadastroInput(BaseModel):
+    nome: str
+    email: str
+    senha: str
+    tipo: str                       # proprietario | corretor | cliente
+    telefone: Optional[str] = None
+    creci: Optional[str] = None
+
+
+# Papeis que podem se auto-cadastrar pelo site. 'admin' nunca entra por aqui.
+TIPOS_CADASTRO = {"proprietario", "corretor", "cliente"}
+
+
+@app.post("/api/cadastro", status_code=201)
+def cadastrar(dados: CadastroInput):
+    """Cria um usuario novo no banco (senha gravada com hash bcrypt) e devolve
+    os mesmos campos do /api/login, para o front ja deixar o usuario logado."""
+    if not _DB_OK or not _BCRYPT_OK:
+        raise HTTPException(status_code=503, detail="Cadastro indisponivel no momento.")
+
+    nome = (dados.nome or "").strip()
+    email = (dados.email or "").strip().lower()
+    tipo = (dados.tipo or "").strip().lower()
+    senha = dados.senha or ""
+
+    if not nome:
+        raise HTTPException(status_code=422, detail="Informe o nome.")
+    if "@" not in email or "." not in email:
+        raise HTTPException(status_code=422, detail="E-mail invalido.")
+    if len(senha) < 6:
+        raise HTTPException(status_code=422, detail="A senha deve ter ao menos 6 caracteres.")
+    if tipo not in TIPOS_CADASTRO:
+        raise HTTPException(status_code=422, detail="Tipo de usuario invalido.")
+
+    # CRECI so faz sentido para corretor; nos demais ignoramos o que vier.
+    creci = (dados.creci or "").strip() if tipo == "corretor" else None
+    telefone = (dados.telefone or "").strip() or None
+
+    # E-mail e unico no banco: avisa antes de tentar inserir.
+    if query("SELECT id FROM usuarios WHERE LOWER(email) = %s LIMIT 1", (email,)):
+        raise HTTPException(status_code=409, detail="Ja existe uma conta com este e-mail.")
+
+    senha_hash = bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO usuarios
+                    (nome, email, senha_hash, tipo, telefone, creci, ativo, criado_em, atualizado_em)
+                VALUES (%s, %s, %s, %s, %s, %s, 1, NOW(), NOW())
+                """,
+                (nome, email, senha_hash, tipo, telefone, creci),
+            )
+            novo_id = cur.lastrowid
+        conn.commit()
+    except Exception as exc:  # noqa: BLE001
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Falha ao cadastrar: {exc}")
+    finally:
+        conn.close()
+
+    return {"id": novo_id, "nome": nome, "email": email, "tipo": tipo}
 
 
 @app.post("/api/login")

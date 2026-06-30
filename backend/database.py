@@ -13,8 +13,9 @@ import pymysql
 from pymysql.cursors import DictCursor
 from dotenv import load_dotenv
 
-# .env fica na raiz do projeto (um nivel acima da pasta backend/)
-ROOT_DIR = Path(__file__).resolve().parent.parent
+# .env fica na raiz deste repositorio (mesma pasta deste arquivo).
+# No deploy (Render) as variaveis vem do ambiente; load_dotenv nao sobrescreve.
+ROOT_DIR = Path(__file__).resolve().parent
 load_dotenv(ROOT_DIR / ".env")
 
 
